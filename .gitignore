@@ -136,6 +136,8 @@ dmypy.json
 
 # Project specific
 model_*/
+models
+model
 results/
 logs/
 *.pth
