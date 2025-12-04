@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trening Modelu</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .train-form {
+            background: linear-gradient(135deg, rgba(187, 134, 252, 0.1), rgba(3, 218, 198, 0.1));
+            border: 1px solid rgba(187, 134, 252, 0.3);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-bottom: 30px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 20px rgba(187, 134, 252, 0.2); }
+            to { box-shadow: 0 0 30px rgba(187, 134, 252, 0.5); }
+        }
+        .train-form label {
+            display: block;
+            margin-top: 15px;
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+        .train-form input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--on-surface-color);
+            font-size: 16px;
+        }
+        .train-form input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+        .train-form input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            margin-right: 10px;
+        }
+        .train-form label[for*="early_stopping"] {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            font-weight: 500;
+            color: var(--secondary-color);
+            cursor: pointer;
+        }
+        .train-form button {
+            background: var(--primary-color);
+            color: var(--background-color);
+            padding: 15px 30px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .train-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(187, 134, 252, 0.4);
+        }
+        .results {
+            background: linear-gradient(135deg, rgba(3, 218, 198, 0.1), rgba(187, 134, 252, 0.1));
+            border: 1px solid rgba(3, 218, 198, 0.3);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-top: 30px;
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .results h2 {
+            color: var(--secondary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .results p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        .results img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--border-radius);
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .history {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .history ul {
+            list-style: none;
+            padding: 0;
+        }
+        .history li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: 'Courier New', monospace;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover {
+            color: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Trening Modelu Klasyfikacji</h1>
+        <a href="/" class="back-link">← Powrót do Klasyfikacji</a>
+        {% if not losses %}
+        <div class="train-form">
+            <h2>Konfiguracja Parametrów</h2>
+            <p style="color: yellow;">⚠️ Trening może trwać kilka minut. Nie zamykaj strony!</p>
+            <form method="post">
+                <label for="model_type">Wybierz model:</label>
+                <select name="model_type" id="model_type" onchange="toggleParams()" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; width: 200px;">
+                    <option value="herbert" {% if selected_model == 'herbert' %}selected{% endif %}>HerBERT</option>
+                    <option value="bert" {% if selected_model == 'bert' %}selected{% endif %}>BERT</option>
+                    <option value="mlp" {% if selected_model == 'mlp' %}selected{% endif %}>MLP</option>
+                </select>
+                
+                <div id="herbert_params">
+                    <label for="epochs">Liczba Epok:</label>
+                    <input type="number" name="epochs" value="10" min="1" max="100" required>
+                    
+                    <label for="batch_size">Rozmiar Batcha:</label>
+                    <input type="number" name="batch_size" value="16" min="1" max="512" required>
+
+                    <label for="early_stopping">
+                        <input type="checkbox" name="early_stopping" id="early_stopping_herbert"> Włącz Early Stopping
+                    </label>
+                </div>
+                
+                <div id="bert_params" style="display: none;">
+                    <label for="epochs">Liczba Epok:</label>
+                    <input type="number" name="epochs" value="10" min="1" max="100" required>
+                    
+                    <label for="batch_size">Rozmiar Batcha:</label>
+                    <input type="number" name="batch_size" value="16" min="1" max="512" required>
+
+                    <label for="early_stopping">
+                        <input type="checkbox" name="early_stopping" id="early_stopping_bert"> Włącz Early Stopping
+                    </label>
+                </div>
+                
+                <div id="mlp_params" style="display: none;">
+                    <label for="epochs">Liczba Epok:</label>
+                    <input type="number" name="epochs" value="20" min="1" max="100" required>
+                    
+                    <label for="lr">Współczynnik Uczenia (Learning Rate):</label>
+                    <input type="number" step="0.0001" name="lr" value="0.001" min="0.0001" max="1" required>
+                    
+                    <label for="batch_size">Rozmiar Batcha:</label>
+                    <input type="number" name="batch_size" value="32" min="1" max="512" required>
+                    
+                    <label for="max_features">Maksymalna Liczba Cech (TF-IDF):</label>
+                    <input type="number" name="max_features" value="2000" min="100" max="10000" required>
+                    
+                    <label for="hidden_size">Rozmiar Warstwy Ukrytej:</label>
+                    <input type="number" name="hidden_size" value="128" min="10" max="1000" required>
+                    
+                    <label for="num_layers">Liczba Warstw Ukrytych:</label>
+                    <input type="number" name="num_layers" value="2" min="1" max="10" required>
+                    
+                    <label for="dropout">Współczynnik Dropout:</label>
+                    <input type="number" step="0.01" name="dropout" value="0.5" min="0" max="1" required>
+
+                    <label for="early_stopping">
+                        <input type="checkbox" name="early_stopping" id="early_stopping_mlp"> Włącz Early Stopping
+                    </label>
+                </div>
+                
+                <button type="submit">Rozpocznij Trening</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="results">
+            <h2>Wyniki Treningu</h2>
+            <p><strong>Parametry:</strong> Epoki: {{ params.epochs }}, LR: {{ params.lr }}, Batch Size: {{ params.batch_size }}, Max Features: {{ params.max_features }}</p>
+            <p><strong>Ostateczna Dokładność Walidacji:</strong> <span style="color: var(--secondary-color); font-size: 24px; font-weight: bold;">{{ "%.2f"|format(final_accuracy * 100) }}%</span></p>
+            
+            <h3>Wykres Straty (Loss)</h3>
+            <img src="data:image/png;base64,{{ plot_loss }}" alt="Loss Plot">
+            
+            <h3>Wykres Dokładności Walidacji (Validation Accuracy)</h3>
+            <img src="data:image/png;base64,{{ plot_acc }}" alt="Accuracy Plot">
+            
+            <div class="history">
+                <h3>Historia Epok</h3>
+                <ul>
+                    {% for i in range(losses|length) %}
+                    <li>Epoka {{ i+1 }}: Loss = {{ "%.4f"|format(losses[i]) }}, Accuracy = {{ "%.4f"|format(accuracies[i]) }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <script>
+        function toggleParams() {
+            const modelType = document.getElementById('model_type').value;
+            const herbertParams = document.getElementById('herbert_params');
+            const bertParams = document.getElementById('bert_params');
+            const mlpParams = document.getElementById('mlp_params');
+            if (modelType === 'herbert') {
+                herbertParams.style.display = 'block';
+                bertParams.style.display = 'none';
+                mlpParams.style.display = 'none';
+            } else if (modelType === 'bert') {
+                herbertParams.style.display = 'none';
+                bertParams.style.display = 'block';
+                mlpParams.style.display = 'none';
+            } else {
+                herbertParams.style.display = 'none';
+                bertParams.style.display = 'none';
+                mlpParams.style.display = 'block';
+            }
+        }
+        // Initial call
+        toggleParams();
+    </script>
+</body>
+</html>
