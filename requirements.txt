@@ -12,12 +12,11 @@ feedparser
 newspaper3k
 langdetect
 tqdm
-lxml
+lxml[html_clean]
 transformers
 datasets
 joblib
 sacremoses
 accelerate
-spacy==3.7.2
-python-dotenv
+spacy
 pytest
