@@ -17,5 +17,7 @@ transformers
 datasets
 joblib
 sacremoses
-tf-keras
 accelerate
+spacy==3.7.2
+python-dotenv
+pytest

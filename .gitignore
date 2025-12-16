@@ -134,12 +134,12 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Project specific
-model_*/
+# Project specific - exclude model weights (large files)
+model_herbert/
+model_bert/
+model_mlp/
 model/
 results/
 logs/
 *.pth
-*.joblib
-static/
-Scrapper
+*.safetensors

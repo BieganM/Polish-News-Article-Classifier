@@ -9,44 +9,43 @@
 <body>
     <div class="container">
         <h1>Automatyczne Tagowanie Artykułów</h1>
-        <button onclick="window.location.href='/train'" style="background: var(--primary-color); color: var(--background-color); padding: 15px 30px; border: none; border-radius: var(--border-radius); cursor: pointer; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; width: 100%; transition: all 0.3s ease;">Trenuj Model</button>
+        <button class="btn-cta" onclick="window.location.href='/train'">Trenuj Nowy Model</button>
+        
         <div class="tabs">
-            <div class="tab active" onclick="showTab('text')">Tekst</div>
-            <div class="tab" onclick="showTab('file')">Plik</div>
-            <div class="tab" onclick="showTab('url')">Link</div>
+            <div class="tab active" onclick="showTab('text')">Wklej tekst</div>
+            <div class="tab" onclick="showTab('file')">Wgraj plik</div>
+            <div class="tab" onclick="showTab('url')">Podaj link</div>
         </div>
+
         <form method="post" enctype="multipart/form-data">
             <div style="margin-bottom: 20px;">
-                <label for="model_type" style="display: block; margin-bottom: 5px; font-weight: bold;">Wybierz model:</label>
-                <select name="model_type" id="model_type" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; width: 200px;">
+                <label for="model_type" class="form-label">Wybierz model:</label>
+                <select name="model_type" id="model_type" class="model-select">
                     <option value="herbert" {% if selected_model == 'herbert' %}selected{% endif %}>{{ model_labels['herbert'] }}</option>
                     <option value="bert" {% if selected_model == 'bert' %}selected{% endif %}>{{ model_labels['bert'] }}</option>
                     <option value="mlp" {% if selected_model == 'mlp' %}selected{% endif %}>{{ model_labels['mlp'] }}</option>
                 </select>
             </div>
+            
             <div id="text-tab" class="tab-content active">
-                <textarea name="text" rows="10" placeholder="Wklej tekst artykułu"></textarea>
+                <textarea name="text" rows="10" placeholder="Wklej tutaj treść artykułu do klasyfikacji..."></textarea>
             </div>
             <div id="file-tab" class="tab-content">
                 <input type="file" name="file" accept=".txt">
             </div>
             <div id="url-tab" class="tab-content">
-                <input type="url" name="url" placeholder="Wprowadź URL artykułu">
+                <input type="url" name="url" placeholder="https://example.com/news/article-url">
             </div>
             <button type="submit">Klasyfikuj</button>
         </form>
-        {% if category %}
-        <div class="result">
-            <strong>Przewidywana kategoria:</strong> {{ category }}
-        </div>
-        {% endif %}
-        {% if confidence %}
-        <div class="result">
-            <strong>Pewność:</strong> {{ "%.2f"|format(confidence * 100) }}%
-        </div>
-        {% endif %}
+
         {% if error %}
-        <p style="color: red;">{{ error }}</p>
+            <p class="error-message">{{ error }}</p>
+        {% elif category and confidence is not none %}
+            <div class="result">
+                <strong>Przewidywana kategoria:</strong> {{ category }} 
+                <span style="font-weight: normal; opacity: 0.8;">({{ "%.1f"|format(confidence * 100) }}% pewności)</span>
+            </div>
         {% endif %}
     </div>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
