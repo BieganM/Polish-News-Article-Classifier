@@ -2,7 +2,6 @@ import os
 import threading
 import logging
 from flask import Flask, request, render_template, jsonify
-from dotenv import load_dotenv
 
 from models.model import (
     load_model,
@@ -14,9 +13,6 @@ from models.model import (
 )
 from models.utils import extract_text_from_url, validate_text_input
 from models.config import PATHS, TransformerConfig, MLPConfig
-
-# Load environment variables from .env file
-load_dotenv()
 
 # --- Application Setup ---
 
@@ -316,5 +312,5 @@ def training_result_route():
 
 
 if __name__ == "__main__":
-    is_debug = os.getenv("FLASK_DEBUG", "False").lower() == "true"
-    app.run(debug=is_debug)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
