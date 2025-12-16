@@ -39,25 +39,19 @@ from .config import (
     MLPConfig,
 )
 
-# --- Training State Management ---
-
 _status_lock = threading.Lock()
 training_status: Dict = {"running": False, "message": "idle"}
 last_train_result: Optional[Dict] = None
-
 
 def get_training_status() -> Dict:
     with _status_lock:
         return training_status.copy()
 
-
 def get_last_training_result() -> Optional[Dict]:
     global last_train_result
     return last_train_result
 
-
 def reset_training_status(model_type: str, params: Dict):
-    """Initializes or resets the training status."""
     global training_status, last_train_result
     with _status_lock:
         training_status = {
@@ -74,17 +68,13 @@ def reset_training_status(model_type: str, params: Dict):
         }
         last_train_result = None
 
-
 def set_training_error(error_message: str):
-    """Sets the training status to an error state."""
     with _status_lock:
         training_status.update(
             {"running": False, "error": error_message, "message": "failed"}
         )
 
-
 def set_training_completed():
-    """Sets the training status to completed."""
     with _status_lock:
         if training_status.get("running"):
             training_status.update(
@@ -96,18 +86,11 @@ def set_training_completed():
                 }
             )
 
-
-# --- Model & Training Logic ---
-
-
 def compute_metrics(p):
     preds = np.argmax(p.predictions, axis=1)
     return {"accuracy": accuracy_score(p.label_ids, preds)}
 
-
 class ProgressCallback(TrainerCallback):
-    """Updates training progress for the UI during transformer training."""
-
     def on_log(self, args, state, control, logs=None, **kwargs):
         if logs is None:
             return
@@ -127,7 +110,6 @@ class ProgressCallback(TrainerCallback):
                 )
             if "eval_accuracy" in logs:
                 training_status.update({"accuracy": float(logs.get("eval_accuracy"))})
-
 
 class TextClassifier(nn.Module):
     def __init__(
@@ -160,7 +142,6 @@ class TextClassifier(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.network(x)
 
-
 def _create_plot(values: List[float], title: str, ylabel: str) -> str:
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(values, marker="o", linewidth=2, markersize=4)
@@ -177,7 +158,6 @@ def _create_plot(values: List[float], title: str, ylabel: str) -> str:
     buf.close()
     plt.close(fig)
     return encoded
-
 
 def _load_dataset_for_transformer(model_type: str, max_length: int = 256):
     df = pd.read_csv(PATHS.data_path)
@@ -208,9 +188,7 @@ def _load_dataset_for_transformer(model_type: str, max_length: int = 256):
 
     return split["train"], split["test"], tokenizer, label_encoder
 
-
 def _train_transformer(model_type: str, config: TransformerConfig):
-    """Train a transformer-based model (HerBERT or BERT)."""
     train_dataset, test_dataset, tokenizer, label_encoder = (
         _load_dataset_for_transformer(model_type, config.max_length)
     )
@@ -230,7 +208,7 @@ def _train_transformer(model_type: str, config: TransformerConfig):
         weight_decay=config.weight_decay,
         learning_rate=config.learning_rate,
         logging_dir=str(PATHS.logs_dir),
-        logging_steps=10,  # Log more frequently for better UI feedback
+        logging_steps=10,
         eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,
@@ -277,7 +255,6 @@ def _train_transformer(model_type: str, config: TransformerConfig):
         "params": asdict(config),
     }
     set_training_completed()
-
 
 def _train_mlp(config: MLPConfig):
     df = pd.read_csv(PATHS.data_path)
@@ -386,7 +363,6 @@ def _train_mlp(config: MLPConfig):
     }
     set_training_completed()
 
-
 def train_model_with_params(params: dict):
     model_type = params.get("model_type", "herbert")
 
@@ -405,9 +381,7 @@ def train_model_with_params(params: dict):
             raise ValueError(f"Unsupported model type: {model_type}")
     except Exception as e:
         set_training_error(str(e))
-        # Re-raise the exception so the background thread in app.py can see it
         raise e
-
 
 def load_model(model_type: str = "herbert") -> Tuple:
     model_map = {
@@ -434,7 +408,6 @@ def load_model(model_type: str = "herbert") -> Tuple:
             vectorizer = joblib.load(model_dir / "vectorizer.joblib")
             label_encoder = joblib.load(model_dir / "label_encoder.joblib")
 
-            # Determine input_size from vectorizer
             input_size = vectorizer.get_feature_names_out().shape[0]
 
             model = TextClassifier(
@@ -453,7 +426,6 @@ def load_model(model_type: str = "herbert") -> Tuple:
         return None, None, None
 
     return None, None, None
-
 
 def predict_category(
     text: str,
