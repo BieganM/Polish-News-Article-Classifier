@@ -15,15 +15,11 @@ from newspaper import Article
 from stop_words import get_stop_words
 from tqdm import tqdm
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logging.getLogger('requests').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
-# Ensure consistent language detection results
 DetectorFactory.seed = 0
-
-# --- Constants ---
 
 FEEDS = {
     'Polska': [
@@ -66,13 +62,7 @@ RE_URL = re.compile(r'https?://\S+|www\.\S+')
 RE_NON_LETTER = re.compile(r'[^a-zA-ZąćęłńóśżźĄĆĘŁŃÓŚŻŹ\s-]')
 RE_MULTI_WS = re.compile(r'\s+')
 
-# --- Text Extraction and Cleaning ---
-
 def extract_full_text(url: str, timeout: int = 10, user_agent: str = 'Mozilla/5.0') -> str | None:
-    """
-    Tries to extract full article text using newspaper3k.
-    If that fails, falls back to requests + BeautifulSoup.
-    """
     headers = {'User-Agent': user_agent}
     try:
         article = Article(url)
@@ -115,7 +105,6 @@ def extract_full_text(url: str, timeout: int = 10, user_agent: str = 'Mozilla/5.
 
 
 def clean_text(text: str) -> str:
-    """Removes extra whitespace from text."""
     return re.sub(r'\s+', ' ', text).strip()
 
 
@@ -124,9 +113,6 @@ def fetch_articles_from_feeds(
     max_articles_per_category: int | None = None,
     min_length: int = 200
 ) -> pd.DataFrame:
-    """
-    Fetches articles from a dictionary of RSS feeds.
-    """
     records = []
     seen_urls = set()
 
@@ -149,7 +135,6 @@ def fetch_articles_from_feeds(
             title = entry.get('title', '')
             published = entry.get('published', entry.get('updated'))
             
-            # Add a small delay to be polite to servers
             time.sleep(0.2)
             
             text = extract_full_text(link)
@@ -164,7 +149,6 @@ def fetch_articles_from_feeds(
             if len(text) < min_length:
                 continue
 
-            # Detect language to ensure it's Polish
             try:
                 if detect(text) != 'pl':
                     continue
@@ -186,12 +170,7 @@ def fetch_articles_from_feeds(
     
     return df
 
-# --- NLP Preprocessing ---
-
 def get_polish_stopwords() -> Set[str]:
-    """
-    Loads Polish stopwords from stop_words package and spaCy.
-    """
     try:
         nlp = spacy.load('pl_core_news_sm')
         spacy_stopwords = set(nlp.Defaults.stop_words)
@@ -207,9 +186,6 @@ def get_polish_stopwords() -> Set[str]:
     return base_stopwords | spacy_stopwords | extra_stops
 
 def normalize_text(text: str) -> str:
-    """
-    Normalizes text by removing URLs, non-letter characters, and extra whitespace.
-    """
     if not isinstance(text, str):
         return ''
     text = text.strip()
@@ -226,9 +202,6 @@ def lemmatize_and_tokenize(
     stopwords: Set[str],
     min_token_len: int = 3
 ) -> List[str]:
-    """
-    Lemmatizes and tokenizes text using a spaCy model.
-    """
     text_norm = normalize_text(text)
     doc = nlp_model(text_norm)
     tokens = []
@@ -246,9 +219,6 @@ def prepare_dataset(
     text_col: str = 'text',
     min_tokens: int = 30
 ) -> pd.DataFrame:
-    """
-    Creates a cleaned and preprocessed dataset.
-    """
     logging.info("Loading spaCy model for lemmatization...")
     try:
         nlp = spacy.load('pl_core_news_sm')
@@ -261,7 +231,6 @@ def prepare_dataset(
     
     logging.info("Starting text preprocessing (lemmatization and tokenization)...")
     
-    # Using apply with a lambda to pass extra arguments
     df['tokens'] = df[text_col].progress_apply(
         lambda t: lemmatize_and_tokenize(t, nlp_model=nlp, stopwords=stopwords)
     )
@@ -269,19 +238,14 @@ def prepare_dataset(
     
     df['n_tokens'] = df['tokens'].apply(len)
     
-    # Filter out articles with too few tokens
     df = df[df['n_tokens'] >= min_tokens].reset_index(drop=True)
     
-    # Drop duplicates based on the normalized text
     df.drop_duplicates(subset=['text_norm'], inplace=True)
     
     return df
 
 
 def main():
-    """
-    Main function to run the scraper and preprocessor.
-    """
     parser = argparse.ArgumentParser(description="Scrape and preprocess Polish news articles.")
     parser.add_argument(
         '--raw_output',
@@ -319,7 +283,6 @@ def main():
     # Add progress_apply to pandas
     tqdm.pandas()
 
-    # --- Step 1: Scrape raw articles ---
     logging.info("Starting article scraping process...")
     df_raw = fetch_articles_from_feeds(
         FEEDS,
@@ -334,7 +297,6 @@ def main():
     df_raw.to_csv(args.raw_output, index=False)
     logging.info(f"Saved {len(df_raw)} raw articles to {args.raw_output}")
 
-    # --- Step 2: Preprocess and clean the data ---
     logging.info("Starting dataset preparation process...")
     df_clean = prepare_dataset(
         df_raw,

@@ -14,7 +14,6 @@ def extract_text_from_url(url: str) -> str:
         raise ValueError("URL jest pusty.")
 
     try:
-        # It's better to create a new Article object for each request
         article = Article(url, language="pl")
         article.download()
         article.parse()

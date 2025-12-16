@@ -9,6 +9,6 @@ function showTab(tabName) {
     
     const activeContent = document.getElementById(`${tabName}-tab`);
     activeContent.classList.add('active');
-    void activeContent.offsetWidth; // Trigger reflow
+    void activeContent.offsetWidth;
     activeContent.style.animation = 'slideIn 0.5s forwards';
 }

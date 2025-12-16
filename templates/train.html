@@ -180,7 +180,7 @@
                 const form = document.querySelector('form');
                 form.style.display = 'none';
                 document.getElementById('training-panel').style.display = 'block';
-                document.getElementById('log-list').innerHTML = ''; // Clear previous logs
+                document.getElementById('log-list').innerHTML = '';
                  {% if params is defined and params %}
                     document.getElementById('training-epochs').innerText = {% if params and 'epochs' in params %}{{ params['epochs'] }}{% else %}{{ defaults.epochs }}{% endif %};
                 {% elif status is defined and status %}
