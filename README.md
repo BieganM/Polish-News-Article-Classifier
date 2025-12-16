@@ -40,7 +40,7 @@ Aplikacja webowa do automatycznej klasyfikacji tematycznej polskich artykułów 
    python app.py
    ```
 
-2. Otwórz przeglądarkę i przejdź do `http://127.0.0.1:5000/`
+2. Otwórz przeglądarkę i przejdź do `http://127.0.0.1:10000/`
 
 ## Użycie
 
