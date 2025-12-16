@@ -1,50 +1,43 @@
-import torch
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from transformers import AutoTokenizer
-from datasets import Dataset
-from newspaper import Article
+import re
+from typing import Optional
+from newspaper import Article, ArticleException
 
-def get_device():
-    return torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+def clean_polish_text(text: str) -> str:
+    text = re.sub(r"http\S+", "", text)
+    text = re.sub(r"\s+", " ", text)
+    text = text.strip()
+    return text
 
-def extract_text_from_url(url):
+
+def extract_text_from_url(url: str) -> str:
+    if not url or not url.strip():
+        raise ValueError("URL jest pusty.")
+
     try:
-        article = Article(url)
+        # It's better to create a new Article object for each request
+        article = Article(url, language="pl")
         article.download()
         article.parse()
-        return article.text
-    except Exception as e:
-        return f"Error extracting text: {str(e)}"
 
-def load_and_preprocess_data(model_type="herbert", max_len=128):
-    df = pd.read_csv('./Scrapper/polsatnews_articles_clean.csv')
-    
-    if model_type in ['herbert', 'bert']:
-        label_encoder = LabelEncoder()
-        df['category_encoded'] = label_encoder.fit_transform(df['category'])
-        
-        dataset = Dataset.from_pandas(df)
-        
-        if model_type == 'herbert':
-            tokenizer = AutoTokenizer.from_pretrained("allegro/herbert-base-cased")
-        elif model_type == 'bert':
-            tokenizer = AutoTokenizer.from_pretrained("bert-base-multilingual-cased")
-        
-        def tokenize_function(examples):
-            return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=max_len)
+        extracted_text = article.text
+        if not extracted_text:
+            raise ValueError("Nie udało się wyodrębnić tekstu z artykułu.")
 
-        tokenized_datasets = dataset.map(tokenize_function, batched=True)
-        tokenized_datasets = tokenized_datasets.remove_columns(["text", "category"])
-        tokenized_datasets = tokenized_datasets.rename_column("category_encoded", "labels")
-        tokenized_datasets.set_format("torch")
+        return clean_polish_text(extracted_text)
 
-        train_dataset, test_dataset = tokenized_datasets.train_test_split(test_size=0.2, seed=42).values()
-        
-        return train_dataset, test_dataset, tokenizer, label_encoder
-    elif model_type == 'mlp':
-        return None, None, None, None
-    else:
-        raise ValueError("Unsupported model type")
+    except ArticleException as e:
+        raise ValueError(f"Błąd podczas przetwarzania artykułu z URL: {url}") from e
 
+
+def validate_text_input(text: Optional[str]) -> tuple[bool, str]:
+    if not text:
+        return False, "Tekst jest pusty."
+
+    text = text.strip()
+    if len(text) < 50:
+        return False, "Tekst jest zbyt krótki (minimum 50 znaków)."
+
+    if len(text) > 50000:
+        return False, "Tekst jest zbyt długi (maksimum 50000 znaków)."
+
+    return True, text
