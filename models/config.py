@@ -3,9 +3,7 @@ from pathlib import Path
 from typing import Optional
 import torch
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
 
 @dataclass
 class ModelPaths:
@@ -60,13 +58,11 @@ MODEL_NAMES = {
 
 
 def get_device() -> torch.device:
-    # Check for environment variable override first
     device_str = os.getenv("DEVICE")
     if device_str:
         print(f"Using device from environment variable: {device_str}")
         return torch.device(device_str)
 
-    # Auto-detection logic
     if torch.cuda.is_available():
         return torch.device("cuda")
     if torch.backends.mps.is_available():
