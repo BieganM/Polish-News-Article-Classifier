@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import matplotlib
 
+os.environ["WANDB_DISABLED"] = "true"
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import joblib
