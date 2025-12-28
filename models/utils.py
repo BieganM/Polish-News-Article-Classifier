@@ -2,6 +2,7 @@ import re
 from typing import Optional
 from newspaper import Article, ArticleException
 
+
 def clean_polish_text(text: str) -> str:
     text = re.sub(r"http\S+", "", text)
     text = re.sub(r"\s+", " ", text)

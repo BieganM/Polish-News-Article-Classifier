@@ -84,6 +84,8 @@
             <h2>Wyniki Treningu</h2>
             <p><strong>Parametry:</strong> Epoki: <span id="res-epochs"></span>, LR: <span id="res-lr"></span>, Batch: <span id="res-batch"></span></p>
             <p><strong>Ostateczna Dokładność:</strong> <span id="res-acc"></span></p>
+            <p><strong>Model:</strong> <span id="res-model"></span> — <strong>Data treningu:</strong> <span id="res-date"></span></p>
+            <p id="res-note" style="color:orange;"></p>
             <h3>Wykres Straty (Loss)</h3>
             <img id="res-loss-plot" src="" alt="Loss Plot">
             <h3>Wykres Dokładności</h3>
@@ -96,6 +98,37 @@
     </div>
 
     <script>
+        // Defaults for both model groups come from server (transformer_defaults, mlp_defaults)
+        const defaultValues = {
+            herbert: {
+                epochs: {{ transformer_defaults.epochs }},
+                batch_size: {{ transformer_defaults.batch_size }},
+                lr: {{ transformer_defaults.learning_rate }},
+                max_length: {{ transformer_defaults.max_length }},
+                early_stopping_patience: {{ transformer_defaults.early_stopping_patience }},
+                early_stopping: {{ 'true' if transformer_defaults.early_stopping else 'false' }},
+            },
+            bert: {
+                epochs: {{ transformer_defaults.epochs }},
+                batch_size: {{ transformer_defaults.batch_size }},
+                lr: {{ transformer_defaults.learning_rate }},
+                max_length: {{ transformer_defaults.max_length }},
+                early_stopping_patience: {{ transformer_defaults.early_stopping_patience }},
+                early_stopping: {{ 'true' if transformer_defaults.early_stopping else 'false' }},
+            },
+            mlp: {
+                epochs: {{ mlp_defaults.epochs }},
+                batch_size: {{ mlp_defaults.batch_size }},
+                lr: {{ mlp_defaults.learning_rate }},
+                max_features: {{ mlp_defaults.max_features }},
+                hidden_size: {{ mlp_defaults.hidden_size }},
+                num_layers: {{ mlp_defaults.num_layers }},
+                dropout: {{ mlp_defaults.dropout }},
+                early_stopping_patience: {{ mlp_defaults.early_stopping_patience }},
+                early_stopping: {{ 'true' if mlp_defaults.early_stopping else 'false' }},
+            },
+        };
+
         function toggleParams() {
             const modelType = document.getElementById('model_type').value;
             const transformerParams = document.getElementById('transformer_params');
@@ -104,9 +137,26 @@
             if (modelType === 'herbert' || modelType === 'bert') {
                 transformerParams.style.display = 'block';
                 mlpParams.style.display = 'none';
+                // populate transformer inputs with defaults when switching
+                transformerParams.querySelector('input[name="epochs"]').value = defaultValues[modelType].epochs;
+                transformerParams.querySelector('input[name="batch_size"]').value = defaultValues[modelType].batch_size;
+                transformerParams.querySelector('input[name="lr"]').value = defaultValues[modelType].lr;
+                transformerParams.querySelector('input[name="max_length"]').value = defaultValues[modelType].max_length;
+                transformerParams.querySelector('input[name="early_stopping_patience"]').value = defaultValues[modelType].early_stopping_patience;
+                document.getElementById('early_stopping_transformer').checked = defaultValues[modelType].early_stopping === true || defaultValues[modelType].early_stopping === 'true';
             } else {
                 transformerParams.style.display = 'none';
                 mlpParams.style.display = 'block';
+                // populate mlp inputs with defaults when switching
+                mlpParams.querySelector('input[name="epochs"]').value = defaultValues.mlp.epochs;
+                mlpParams.querySelector('input[name="lr"]').value = defaultValues.mlp.lr;
+                mlpParams.querySelector('input[name="batch_size"]').value = defaultValues.mlp.batch_size;
+                mlpParams.querySelector('input[name="max_features"]').value = defaultValues.mlp.max_features;
+                mlpParams.querySelector('input[name="hidden_size"]').value = defaultValues.mlp.hidden_size;
+                mlpParams.querySelector('input[name="num_layers"]').value = defaultValues.mlp.num_layers;
+                mlpParams.querySelector('input[name="dropout"]').value = defaultValues.mlp.dropout;
+                mlpParams.querySelector('input[name="early_stopping_patience"]').value = defaultValues.mlp.early_stopping_patience;
+                document.getElementById('early_stopping_mlp').checked = defaultValues.mlp.early_stopping === true || defaultValues.mlp.early_stopping === 'true';
             }
         }
 
@@ -137,10 +187,15 @@
                         document.getElementById('training-bar').style.width = (s.progress || 0) + '%';
                         
                         if (s.epoch && s.epoch > lastEpoch) {
-                            const li = document.createElement('li');
-                            li.innerText = `Epoka ${s.epoch}: Loss = ${s.loss ? s.loss.toFixed(4) : '-'}, Acc = ${s.accuracy ? (s.accuracy * 100).toFixed(2) + '%' : '-'}`;
-                            document.getElementById('log-list').appendChild(li);
-                            lastEpoch = s.epoch;
+                            // Only append epochs that have a finite accuracy value
+                            const acc = s.accuracy;
+                            const loss = s.loss;
+                            if (Number.isFinite(acc)) {
+                                const li = document.createElement('li');
+                                li.innerText = `Epoka ${s.epoch}: Loss = ${Number.isFinite(loss) ? loss.toFixed(4) : '-'}, Accuracy = ${(acc * 100).toFixed(2)}%`;
+                                document.getElementById('log-list').appendChild(li);
+                                lastEpoch = s.epoch;
+                            }
                         }
                         setTimeout(pollTraining, 1500);
 
@@ -159,14 +214,50 @@
                                 document.getElementById('res-epochs').innerText = data.params.epochs;
                                 document.getElementById('res-lr').innerText = data.params.lr;
                                 document.getElementById('res-batch').innerText = data.params.batch_size;
-                                const finalAcc = data.accuracies[data.accuracies.length - 1];
-                                document.getElementById('res-acc').innerText = (finalAcc * 100).toFixed(2) + '%';
+
+                                // show model and completed date
+                                document.getElementById('res-model').innerText = data.model_type || 'N/A';
+                                if (data.completed_at) {
+                                    const d = new Date(data.completed_at);
+                                    document.getElementById('res-date').innerText = d.toLocaleString('pl-PL');
+                                } else {
+                                    document.getElementById('res-date').innerText = 'N/A';
+                                }
+
+                                // warn if results are for different model than currently selected
+                                const currentModel = document.getElementById('model_type') ? document.getElementById('model_type').value : null;
+                                const noteEl = document.getElementById('res-note');
+                                if (data.model_type && currentModel && data.model_type !== currentModel) {
+                                    noteEl.innerText = `Uwaga: wyniki dotyczą modelu ${data.model_type}`;
+                                } else {
+                                    noteEl.innerText = '';
+                                }
+
+                                // Pick the last finite accuracy as the final accuracy
+                                const validAccs = (data.accuracies || []).filter(a => Number.isFinite(a));
+                                const finalAcc = validAccs.length ? validAccs[validAccs.length - 1] : null;
+                                document.getElementById('res-acc').innerText = finalAcc !== null ? (finalAcc * 100).toFixed(2) + '%' : 'N/A';
                                 
-                                document.getElementById('res-loss-plot').src = 'data:image/png;base64,' + data.plot_loss;
-                                document.getElementById('res-acc-plot').src = 'data:image/png;base64,' + data.plot_acc;
+                                // Set plots only if available
+                                if (data.plot_loss) {
+                                    document.getElementById('res-loss-plot').src = 'data:image/png;base64,' + data.plot_loss;
+                                    document.getElementById('res-loss-plot').style.display = 'block';
+                                } else {
+                                    document.getElementById('res-loss-plot').style.display = 'none';
+                                }
+                                if (data.plot_acc) {
+                                    document.getElementById('res-acc-plot').src = 'data:image/png;base64,' + data.plot_acc;
+                                    document.getElementById('res-acc-plot').style.display = 'block';
+                                } else {
+                                    document.getElementById('res-acc-plot').style.display = 'none';
+                                }
                                 
                                 const historyUl = document.getElementById('res-history');
-                                historyUl.innerHTML = data.losses.map((loss, i) => `<li>Epoka ${i+1}: Loss = ${loss.toFixed(4)}, Accuracy = ${(data.accuracies[i] * 100).toFixed(2)}%</li>`).join('');
+                                historyUl.innerHTML = (data.losses || []).map((loss, i) => {
+                                    const acc = data.accuracies && data.accuracies[i];
+                                    if (!Number.isFinite(acc)) return '';
+                                    return `<li>Epoka ${i + 1}: Loss = ${Number.isFinite(loss) ? loss.toFixed(4) : '-'}, Accuracy = ${(acc * 100).toFixed(2)}%</li>`;
+                                }).filter(Boolean).join('');
                             }
                         });
                     }
@@ -186,6 +277,9 @@
                 {% elif status is defined and status %}
                     document.getElementById('training-epochs').innerText = {{ status['epochs'] }};
                 {% endif %}
+                // reset the in-memory epoch counter and logs for this session
+                lastEpoch = 0;
+                document.getElementById('log-list').innerHTML = '';
             {% endif %}
             
             pollTraining();
