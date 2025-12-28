@@ -215,19 +215,62 @@ def home():
     return render_template("index.html", **template_context)
 
 
+def _safe_int(form, key, default):
+    val = form.get(key)
+    if val is None or val == "":
+        return default
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        raise ValueError(f"Invalid integer for {key}: {val}")
+
+
+def _safe_float(form, key, default):
+    val = form.get(key)
+    if val is None or val == "":
+        return default
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        raise ValueError(f"Invalid float for {key}: {val}")
+
+
+def _safe_bool(form, key, default):
+    val = form.get(key)
+    if val is None or val == "":
+        return default
+    return val == "on"
+
+
 @app.route("/train", methods=["GET", "POST"])
 def train():
     global training_thread
     model_type = request.form.get("model_type", "herbert")
-    defaults = TransformerConfig() if model_type in ("herbert", "bert") else MLPConfig()
+    transformer_defaults = TransformerConfig()
+    mlp_defaults = MLPConfig()
+    defaults = (
+        transformer_defaults if model_type in ("herbert", "bert") else mlp_defaults
+    )
 
-    if get_training_status().get("running"):
+    status = get_training_status()
+    if status.get("completed"):
+        # Reset status for new training session
+        from models import model as model_module
+
+        with model_module._status_lock:
+            model_module.training_status["completed"] = False
+            model_module.training_status["message"] = "idle"
+        model_module.last_train_result = None
+
+    if status.get("running"):
         return render_template(
             "train.html",
             selected_model=model_type,
             training=True,
-            status=get_training_status(),
+            status=status,
             defaults=defaults,
+            transformer_defaults=transformer_defaults,
+            mlp_defaults=mlp_defaults,
         )
 
     if request.method == "POST":
@@ -237,37 +280,41 @@ def train():
                 cfg = TransformerConfig()
                 params = {
                     "model_type": model_type,
-                    "epochs": int(request.form.get("epochs", cfg.epochs)),
-                    "lr": float(request.form.get("lr", cfg.learning_rate)),
-                    "batch_size": int(request.form.get("batch_size", cfg.batch_size)),
-                    "max_length": int(request.form.get("max_length", cfg.max_length)),
-                    "early_stopping": request.form.get("early_stopping") == "on",
-                    "early_stopping_patience": int(
-                        request.form.get(
-                            "early_stopping_patience", cfg.early_stopping_patience
-                        )
+                    "epochs": _safe_int(request.form, "epochs", cfg.epochs),
+                    "lr": _safe_float(request.form, "lr", cfg.learning_rate),
+                    "batch_size": _safe_int(request.form, "batch_size", cfg.batch_size),
+                    "max_length": _safe_int(request.form, "max_length", cfg.max_length),
+                    "early_stopping": _safe_bool(
+                        request.form, "early_stopping", cfg.early_stopping
+                    ),
+                    "early_stopping_patience": _safe_int(
+                        request.form,
+                        "early_stopping_patience",
+                        cfg.early_stopping_patience,
                     ),
                 }
             elif model_type == "mlp":
                 cfg = MLPConfig()
                 params = {
                     "model_type": model_type,
-                    "epochs": int(request.form.get("epochs", cfg.epochs)),
-                    "lr": float(request.form.get("lr", cfg.learning_rate)),
-                    "batch_size": int(request.form.get("batch_size", cfg.batch_size)),
-                    "max_features": int(
-                        request.form.get("max_features", cfg.max_features)
+                    "epochs": _safe_int(request.form, "epochs", cfg.epochs),
+                    "lr": _safe_float(request.form, "lr", cfg.learning_rate),
+                    "batch_size": _safe_int(request.form, "batch_size", cfg.batch_size),
+                    "max_features": _safe_int(
+                        request.form, "max_features", cfg.max_features
                     ),
-                    "hidden_size": int(
-                        request.form.get("hidden_size", cfg.hidden_size)
+                    "hidden_size": _safe_int(
+                        request.form, "hidden_size", cfg.hidden_size
                     ),
-                    "num_layers": int(request.form.get("num_layers", cfg.num_layers)),
-                    "dropout": float(request.form.get("dropout", cfg.dropout)),
-                    "early_stopping": request.form.get("early_stopping") == "on",
-                    "early_stopping_patience": int(
-                        request.form.get(
-                            "early_stopping_patience", cfg.early_stopping_patience
-                        )
+                    "num_layers": _safe_int(request.form, "num_layers", cfg.num_layers),
+                    "dropout": _safe_float(request.form, "dropout", cfg.dropout),
+                    "early_stopping": _safe_bool(
+                        request.form, "early_stopping", cfg.early_stopping
+                    ),
+                    "early_stopping_patience": _safe_int(
+                        request.form,
+                        "early_stopping_patience",
+                        cfg.early_stopping_patience,
                     ),
                 }
             else:
@@ -290,11 +337,18 @@ def train():
             params=params,
             status=get_training_status(),
             defaults=defaults,
+            transformer_defaults=transformer_defaults,
+            mlp_defaults=mlp_defaults,
         )
 
     # For GET request
     return render_template(
-        "train.html", selected_model=model_type, training=False, defaults=defaults
+        "train.html",
+        selected_model=model_type,
+        training=False,
+        defaults=defaults,
+        transformer_defaults=transformer_defaults,
+        mlp_defaults=mlp_defaults,
     )
 
 

@@ -22,7 +22,7 @@ class ModelPaths:
 
 @dataclass
 class TransformerConfig:
-    epochs: int = 10
+    epochs: int = 1
     batch_size: int = 16
     eval_batch_size: int = 64
     warmup_steps: int = 500
@@ -38,7 +38,7 @@ class TransformerConfig:
 
 @dataclass
 class MLPConfig:
-    epochs: int = 20
+    epochs: int = 1
     batch_size: int = 32
     learning_rate: float = 0.001
     max_features: int = 5000
