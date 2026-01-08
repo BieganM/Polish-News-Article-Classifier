@@ -10,19 +10,17 @@ from models.model import (
     get_training_status,
     get_last_training_result,
     reset_training_status,
+    clear_training_status,
 )
 from models.utils import extract_text_from_url, validate_text_input
 from models.config import PATHS, TransformerConfig, MLPConfig
 
-# --- Application Setup ---
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
 class ModelManager:
-    """Thread-safe manager for loading and handling ML models."""
-
     def __init__(self, default_model_type="herbert"):
         self.model_type = default_model_type
         self.model = None
@@ -32,7 +30,6 @@ class ModelManager:
         self.load()
 
     def load(self, model_type=None):
-        """Load the specified model type or the current one."""
         with self._lock:
             if model_type:
                 self.model_type = model_type
@@ -51,7 +48,6 @@ class ModelManager:
         return True
 
     def predict(self, text: str):
-        """Predict category for the given text."""
         if self.model is None:
             raise RuntimeError("Model is not loaded. Please train it first.")
 
@@ -69,18 +65,12 @@ class ModelManager:
         return self.model is not None
 
 
-# --- Global Instances ---
-
 model_manager = ModelManager()
 training_thread = None
 training_lock = threading.Lock()
 
 
-# --- Helper Functions ---
-
-
 def get_available_models():
-    """Checks for the existence of trained model artifacts."""
     return {
         "herbert": os.path.exists(PATHS.herbert_dir),
         "bert": os.path.exists(PATHS.bert_dir),
@@ -89,10 +79,9 @@ def get_available_models():
 
 
 def get_model_labels(available_models):
-    """Generates display labels for models, indicating their status."""
     labels = {
-        "herbert": "HerBERT (Polski)",
-        "bert": "BERT (Wielojęzyczny)",
+        "herbert": "HerBERT",
+        "bert": "BERT",
         "mlp": "MLP (TF-IDF)",
     }
     return {
@@ -102,7 +91,6 @@ def get_model_labels(available_models):
 
 
 def extract_text_from_request(form, files):
-    """Extracts text from form, file, or URL, raising ValueError on failure."""
     if form.get("text", "").strip():
         return form["text"].strip()
 
@@ -120,45 +108,33 @@ def extract_text_from_request(form, files):
     return None
 
 
-# --- Background Training ---
-
-
 def _background_train(params):
-    """
-    Runs the training process in a background thread and updates the status.
-    Reloads the model on successful completion.
-    """
     global model_manager
-    # Directly import the model module to access its status variables
+
     from models import model as model_module
 
     try:
         train_model_with_params(params)
-        # On success, reload the newly trained model
+
         model_manager.load(params.get("model_type"))
 
-        # Mark training as completed successfully
         with model_module._status_lock:
             model_module.training_status["message"] = "completed"
 
     except Exception as e:
-        # Log the full exception traceback for detailed debugging
+
         logging.exception("An error occurred during model training.")
 
-        # Update the status to reflect the error
         with model_module._status_lock:
             model_module.training_status.update(
                 {"running": False, "error": str(e), "message": "failed"}
             )
 
     finally:
-        # Ensure the 'running' flag is set to False, regardless of outcome
+
         with model_module._status_lock:
             if model_module.training_status.get("running"):
                 model_module.training_status["running"] = False
-
-
-# --- Flask Routes ---
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -218,8 +194,17 @@ def home():
 @app.route("/train", methods=["GET", "POST"])
 def train():
     global training_thread
-    model_type = request.form.get("model_type", "herbert")
-    defaults = TransformerConfig() if model_type in ("herbert", "bert") else MLPConfig()
+    model_type = (
+        request.form.get("model_type") or request.args.get("model_type") or "herbert"
+    )
+    transformer_defaults = TransformerConfig()
+    mlp_defaults = MLPConfig()
+    defaults = (
+        transformer_defaults if model_type in ("herbert", "bert") else mlp_defaults
+    )
+
+    if request.args.get("reset") == "1":
+        clear_training_status()
 
     if get_training_status().get("running"):
         return render_template(
@@ -228,10 +213,12 @@ def train():
             training=True,
             status=get_training_status(),
             defaults=defaults,
+            transformer_defaults=transformer_defaults,
+            mlp_defaults=mlp_defaults,
         )
 
     if request.method == "POST":
-        # Consolidate parameters from form, with defaults from config
+
         try:
             if model_type in ("herbert", "bert"):
                 cfg = TransformerConfig()
@@ -290,11 +277,17 @@ def train():
             params=params,
             status=get_training_status(),
             defaults=defaults,
+            transformer_defaults=TransformerConfig(),
+            mlp_defaults=MLPConfig(),
         )
 
-    # For GET request
     return render_template(
-        "train.html", selected_model=model_type, training=False, defaults=defaults
+        "train.html",
+        selected_model=model_type,
+        training=False,
+        defaults=defaults,
+        transformer_defaults=TransformerConfig(),
+        mlp_defaults=MLPConfig(),
     )
 
 

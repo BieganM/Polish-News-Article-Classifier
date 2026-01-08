@@ -45,13 +45,16 @@ _status_lock = threading.Lock()
 training_status: Dict = {"running": False, "message": "idle"}
 last_train_result: Optional[Dict] = None
 
+
 def get_training_status() -> Dict:
     with _status_lock:
         return training_status.copy()
 
+
 def get_last_training_result() -> Optional[Dict]:
     global last_train_result
     return last_train_result
+
 
 def reset_training_status(model_type: str, params: Dict):
     global training_status, last_train_result
@@ -70,11 +73,33 @@ def reset_training_status(model_type: str, params: Dict):
         }
         last_train_result = None
 
+
 def set_training_error(error_message: str):
     with _status_lock:
         training_status.update(
             {"running": False, "error": error_message, "message": "failed"}
         )
+
+
+def clear_training_status():
+    """Reset status flags so UI can return to the training form (no running/completed state)."""
+    global last_train_result
+    with _status_lock:
+        training_status.update(
+            {
+                "running": False,
+                "completed": False,
+                "message": "idle",
+                "epoch": 0,
+                "epochs": 0,
+                "progress": 0.0,
+                "loss": None,
+                "accuracy": None,
+                "error": None,
+            }
+        )
+        last_train_result = None
+
 
 def set_training_completed():
     with _status_lock:
@@ -88,9 +113,11 @@ def set_training_completed():
                 }
             )
 
+
 def compute_metrics(p):
     preds = np.argmax(p.predictions, axis=1)
     return {"accuracy": accuracy_score(p.label_ids, preds)}
+
 
 class ProgressCallback(TrainerCallback):
     def on_log(self, args, state, control, logs=None, **kwargs):
@@ -112,6 +139,7 @@ class ProgressCallback(TrainerCallback):
                 )
             if "eval_accuracy" in logs:
                 training_status.update({"accuracy": float(logs.get("eval_accuracy"))})
+
 
 class TextClassifier(nn.Module):
     def __init__(
@@ -144,6 +172,7 @@ class TextClassifier(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.network(x)
 
+
 def _create_plot(values: List[float], title: str, ylabel: str) -> str:
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(values, marker="o", linewidth=2, markersize=4)
@@ -160,6 +189,7 @@ def _create_plot(values: List[float], title: str, ylabel: str) -> str:
     buf.close()
     plt.close(fig)
     return encoded
+
 
 def _load_dataset_for_transformer(model_type: str, max_length: int = 256):
     df = pd.read_csv(PATHS.data_path)
@@ -189,6 +219,7 @@ def _load_dataset_for_transformer(model_type: str, max_length: int = 256):
     )
 
     return split["train"], split["test"], tokenizer, label_encoder
+
 
 def _train_transformer(model_type: str, config: TransformerConfig):
     train_dataset, test_dataset, tokenizer, label_encoder = (
@@ -257,6 +288,7 @@ def _train_transformer(model_type: str, config: TransformerConfig):
         "params": asdict(config),
     }
     set_training_completed()
+
 
 def _train_mlp(config: MLPConfig):
     df = pd.read_csv(PATHS.data_path)
@@ -365,6 +397,7 @@ def _train_mlp(config: MLPConfig):
     }
     set_training_completed()
 
+
 def train_model_with_params(params: dict):
     model_type = params.get("model_type", "herbert")
 
@@ -384,6 +417,7 @@ def train_model_with_params(params: dict):
     except Exception as e:
         set_training_error(str(e))
         raise e
+
 
 def load_model(model_type: str = "herbert") -> Tuple:
     model_map = {
@@ -428,6 +462,7 @@ def load_model(model_type: str = "herbert") -> Tuple:
         return None, None, None
 
     return None, None, None
+
 
 def predict_category(
     text: str,
