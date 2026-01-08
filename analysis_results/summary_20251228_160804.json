@@ -1,0 +1,79 @@
+{
+  "timestamp": "20251228_160804",
+  "dataset_info": {
+    "total_samples": 712,
+    "num_categories": 6,
+    "categories": [
+      "Biznes",
+      "Moto",
+      "Polska",
+      "Sport",
+      "Technologie",
+      "Świat"
+    ],
+    "train_size": 427,
+    "val_size": 142,
+    "test_size": 143
+  },
+  "best_model": {
+    "name": "MLP_Medium",
+    "f1_score": 0.8344393607358359,
+    "accuracy": 0.8391608391608392,
+    "training_time_min": 0.018215580781300863
+  },
+  "fastest_model": {
+    "name": "MLP_HighDropout",
+    "f1_score": 0.8126124070180013,
+    "training_time_min": 0.016014746824900308
+  },
+  "all_models": [
+    {
+      "Model": "MLP_Medium",
+      "Accuracy": 0.8391608391608392,
+      "Precision": 0.8391724323421936,
+      "Recall": 0.8391608391608392,
+      "F1-Score": 0.8344393607358359,
+      "Cohen Kappa": 0.792124889394514,
+      "MCC": 0.7946978515859933,
+      "Training Time (s)": 1.0929348468780518,
+      "Training Time (min)": 0.018215580781300863,
+      "Score_per_minute": 45.80909995427796
+    },
+    {
+      "Model": "MLP_HighDropout",
+      "Accuracy": 0.8181818181818182,
+      "Precision": 0.8211728451010604,
+      "Recall": 0.8181818181818182,
+      "F1-Score": 0.8126124070180013,
+      "Cohen Kappa": 0.7640713243226093,
+      "MCC": 0.7675202717545574,
+      "Training Time (s)": 0.9608848094940186,
+      "Training Time (min)": 0.016014746824900308,
+      "Score_per_minute": 50.74150818010573
+    },
+    {
+      "Model": "MLP_Small",
+      "Accuracy": 0.8111888111888111,
+      "Precision": 0.8170017837949527,
+      "Recall": 0.8111888111888111,
+      "F1-Score": 0.8073412349211072,
+      "Cohen Kappa": 0.7539510578638796,
+      "MCC": 0.7583964822929912,
+      "Training Time (s)": 1.3349249362945557,
+      "Training Time (min)": 0.022248748938242593,
+      "Score_per_minute": 36.28703965162718
+    },
+    {
+      "Model": "MLP_Large",
+      "Accuracy": 0.7832167832167832,
+      "Precision": 0.7923134557749942,
+      "Recall": 0.7832167832167832,
+      "F1-Score": 0.781154873840774,
+      "Cohen Kappa": 0.7198913180841653,
+      "MCC": 0.7216680618427033,
+      "Training Time (s)": 1.1329848766326904,
+      "Training Time (min)": 0.018883081277211507,
+      "Score_per_minute": 41.36797709934596
+    }
+  ]
+}

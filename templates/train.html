@@ -14,7 +14,9 @@
         <div id="train-container">
             <div class="train-form" id="train-form">
                 <h2>Konfiguracja Parametrów</h2>
-                <p style="color: yellow;">Trening może trwać kilka minut. Nie zamykaj strony!</p>
+                <div class="training-warning">
+                    <p>Trening może trwać kilka minut. Nie zamykaj strony!</p>
+                </div>
                 <form method="post" novalidate>
                     <label for="model_type">Wybierz model:</label>
                     <select name="model_type" id="model_type" onchange="toggleParams()" class="input-field">
@@ -92,10 +94,61 @@
                 <h3>Historia Epok</h3>
                 <ul id="res-history"></ul>
             </div>
+            <div class="train-again-container">
+                <a href="/train?reset=1&model_type={{ selected_model }}" class="button">Trenuj ponownie</a>
+            </div>
         </div>
     </div>
 
     <script>
+        const paramsDefined = {% if params is defined and params %}true{% else %}false{% endif %};
+
+        const mlpDefaults = {
+            epochs: {{ mlp_defaults.epochs }},
+            batch_size: {{ mlp_defaults.batch_size }},
+            lr: {{ mlp_defaults.learning_rate }},
+            max_features: {{ mlp_defaults.max_features }},
+            hidden_size: {{ mlp_defaults.hidden_size }},
+            num_layers: {{ mlp_defaults.num_layers }},
+            dropout: {{ mlp_defaults.dropout }},
+            early_stopping: {{ 'true' if mlp_defaults.early_stopping else 'false' }},
+            early_stopping_patience: {{ mlp_defaults.early_stopping_patience }},
+        };
+
+        const transformerDefaults = {
+            epochs: {{ transformer_defaults.epochs }},
+            batch_size: {{ transformer_defaults.batch_size }},
+            lr: {{ transformer_defaults.learning_rate }},
+            max_length: {{ transformer_defaults.max_length }},
+            early_stopping: {{ 'true' if transformer_defaults.early_stopping else 'false' }},
+            early_stopping_patience: {{ transformer_defaults.early_stopping_patience }},
+        };
+
+        function setDefaultValuesForModel(modelType) {
+            if (paramsDefined) return;
+
+            if (modelType === 'mlp') {
+                const container = document.getElementById('mlp_params');
+                container.querySelector('input[name="epochs"]').value = mlpDefaults.epochs;
+                container.querySelector('input[name="lr"]').value = mlpDefaults.lr;
+                container.querySelector('input[name="batch_size"]').value = mlpDefaults.batch_size;
+                container.querySelector('input[name="max_features"]').value = mlpDefaults.max_features;
+                container.querySelector('input[name="hidden_size"]').value = mlpDefaults.hidden_size;
+                container.querySelector('input[name="num_layers"]').value = mlpDefaults.num_layers;
+                container.querySelector('input[name="dropout"]').value = mlpDefaults.dropout;
+                container.querySelector('input[name="early_stopping"]').checked = mlpDefaults.early_stopping === true || mlpDefaults.early_stopping === 'true';
+                container.querySelector('input[name="early_stopping_patience"]').value = mlpDefaults.early_stopping_patience;
+            } else {
+                const container = document.getElementById('transformer_params');
+                container.querySelector('input[name="epochs"]').value = transformerDefaults.epochs;
+                container.querySelector('input[name="lr"]').value = transformerDefaults.lr;
+                container.querySelector('input[name="batch_size"]').value = transformerDefaults.batch_size;
+                container.querySelector('input[name="max_length"]').value = transformerDefaults.max_length;
+                container.querySelector('input[name="early_stopping"]').checked = transformerDefaults.early_stopping === true || transformerDefaults.early_stopping === 'true';
+                container.querySelector('input[name="early_stopping_patience"]').value = transformerDefaults.early_stopping_patience;
+            }
+        }
+
         function toggleParams() {
             const modelType = document.getElementById('model_type').value;
             const transformerParams = document.getElementById('transformer_params');
@@ -108,6 +161,8 @@
                 transformerParams.style.display = 'none';
                 mlpParams.style.display = 'block';
             }
+
+            setDefaultValuesForModel(modelType);
         }
 
         let lastEpoch = 0;
@@ -176,6 +231,8 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             toggleParams();
+            setDefaultValuesForModel(document.getElementById('model_type').value);
+
             {% if training or status and (status.running or status.completed) %}
                 const form = document.querySelector('form');
                 form.style.display = 'none';

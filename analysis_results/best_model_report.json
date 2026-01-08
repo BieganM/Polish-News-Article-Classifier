@@ -1,0 +1,87 @@
+{
+  "model_name": "MLP_HighDropout",
+  "model_type": "MLP",
+  "configuration": {
+    "name": "MLP_HighDropout",
+    "hidden_sizes": [
+      512,
+      256
+    ],
+    "max_features": 5000,
+    "dropout": 0.7,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "epochs": 20
+  },
+  "metrics": {
+    "accuracy": 0.8391608391608392,
+    "precision": 0.8390215148835839,
+    "recall": 0.8391608391608392,
+    "f1": 0.833435658555663,
+    "kappa": 0.7920591768350509,
+    "mcc": 0.7949448729556501
+  },
+  "classification_report": {
+    "Biznes": {
+      "precision": 0.75,
+      "recall": 0.5454545454545454,
+      "f1-score": 0.631578947368421,
+      "support": 22.0
+    },
+    "Moto": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 10.0
+    },
+    "Polska": {
+      "precision": 0.7758620689655172,
+      "recall": 0.8823529411764706,
+      "f1-score": 0.8256880733944955,
+      "support": 51.0
+    },
+    "Sport": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 17.0
+    },
+    "Technologie": {
+      "precision": 0.8518518518518519,
+      "recall": 0.9583333333333334,
+      "f1-score": 0.9019607843137255,
+      "support": 24.0
+    },
+    "Świat": {
+      "precision": 0.8666666666666667,
+      "recall": 0.6842105263157895,
+      "f1-score": 0.7647058823529411,
+      "support": 19.0
+    },
+    "macro avg": {
+      "precision": 0.8740634312473393,
+      "recall": 0.8450585577133564,
+      "f1-score": 0.8539889479049306,
+      "support": 143.0
+    },
+    "weighted avg": {
+      "precision": 0.8390215148835839,
+      "recall": 0.8391608391608392,
+      "f1-score": 0.833435658555663,
+      "support": 143.0
+    }
+  },
+  "selected_models": {
+    "best_overall": "MLP_HighDropout",
+    "best_fast": "MLP_HighDropout",
+    "best_balanced": "MLP_HighDropout",
+    "top_5": [
+      "MLP_HighDropout",
+      "MLP_SmallBatch",
+      "MLP_Small_Basic",
+      "MLP_LowDropout",
+      "MLP_HighLR"
+    ]
+  },
+  "timestamp": "2026-01-08 22:06:23"
+}

@@ -1,0 +1,6 @@
+Parametr,Test,Statystyka,P-value,Istotny (p<0.05),Korelacja
+Dropout,ANOVA,0.3149,0.8595,NIE,-0.0593
+Learning Rate,ANOVA,17.8121,0.0009,TAK,+0.7205
+Batch Size,ANOVA,0.2315,0.7979,NIE,-0.0041
+Max Features,ANOVA,0.3249,0.7308,NIE,-0.2595
+Liczba Warstw,ANOVA,1.1075,0.3715,NIE,-0.4171

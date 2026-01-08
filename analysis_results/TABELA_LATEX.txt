@@ -1,0 +1,129 @@
+% TABELA 1: Wyniki testów ANOVA dla parametrów modelu MLP
+
+\begin{table}[h]
+\centering
+\caption{Wyniki testów ANOVA dla wpływu parametrów na F1-Score}
+\label{tab:anova_results}
+\begin{tabular}{lcccc}
+\hline
+\textbf{Parametr} & \textbf{F-statystyka} & \textbf{p-value} & \textbf{Korelacja} & \textbf{Istotność} \\
+\hline
+Learning Rate     & 90.75  & \textless 0.0001 & +0.695 & \textbf{TAK} \\
+Dropout           & 0.14   & 0.962            & -0.133 & NIE \\
+Batch Size        & 0.26   & 0.775            & +0.117 & NIE \\
+Max Features      & 0.08   & 0.920            & -0.126 & NIE \\
+Liczba Warstw     & 0.12   & 0.893            & -0.082 & NIE \\
+\hline
+\end{tabular}
+\end{table}
+
+% TABELA 2: Porównanie konfiguracji modeli MLP (TOP 5)
+
+\begin{table}[h]
+\centering
+\caption{Porównanie 5 najlepszych konfiguracji modeli MLP}
+\label{tab:model_comparison}
+\small
+\begin{tabular}{lccccc}
+\hline
+\textbf{Model} & \textbf{F1-Score} & \textbf{Accuracy} & \textbf{Czas [s]} & \textbf{LR} & \textbf{Architektura} \\
+\hline
+MLP\_LargeBatch      & \textbf{0.8174} & \textbf{0.8252} & 1.09 & 0.001 & [512, 256] \\
+MLP\_Optimized       & 0.8142 & 0.8198 & 1.11 & 0.001 & [256, 128, 64] \\
+MLP\_BasicDeep       & 0.8131 & 0.8140 & 1.23 & 0.001 & [512, 256, 128] \\
+MLP\_Small\_HighLR   & 0.8089 & 0.8023 & 1.01 & 0.002 & [128, 64] \\
+MLP\_Medium\_HighLR  & 0.8065 & 0.7965 & 1.05 & 0.002 & [256, 128] \\
+\hline
+\end{tabular}
+\end{table}
+
+% TABELA 3: Specyfikacja najlepszego modelu
+
+\begin{table}[h]
+\centering
+\caption{Szczegółowa specyfikacja najlepszego modelu: MLP\_LargeBatch}
+\label{tab:best_model}
+\begin{tabular}{ll}
+\hline
+\textbf{Parametr} & \textbf{Wartość} \\
+\hline
+\multicolumn{2}{c}{\textit{Architektura}} \\
+Warstwy ukryte        & [512, 256] \\
+Funkcja aktywacji     & ReLU \\
+Warstwa wyjściowa     & Softmax (6 klas) \\
+Liczba parametrów     & $\sim$265k \\
+\hline
+\multicolumn{2}{c}{\textit{Hiperparametry}} \\
+Learning Rate         & 0.001 \\
+Dropout               & 0.5 \\
+Batch Size            & 64 \\
+Epochs                & 20 \\
+Optimizer             & Adam \\
+Max Features (TF-IDF) & 5000 \\
+\hline
+\multicolumn{2}{c}{\textit{Wyniki}} \\
+F1-Score (macro)      & 0.8174 \\
+Accuracy              & 0.8252 \\
+Precision (macro)     & 0.8344 \\
+Recall (macro)        & 0.8252 \\
+Cohen's Kappa         & 0.7724 \\
+Matthews CC           & 0.7783 \\
+Czas treningu         & 1.09 s \\
+\hline
+\end{tabular}
+\end{table}
+
+% WSTAWIENIE WYKRESÓW (przykłady)
+
+% Wykres wpływu parametrów
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{analysis_results/parameter_impact_analysis.png}
+\caption{Wpływ poszczególnych parametrów na F1-Score modelu MLP}
+\label{fig:parameter_impact}
+\end{figure}
+
+% Wykres Learning Rate (najważniejszy)
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{analysis_results/learning_rate_analysis_detailed.png}
+\caption{Szczegółowa analiza wpływu Learning Rate na wydajność modelu. Panel A: rozkład F1-Score, Panel B: regresja wielomianowa, Panel C: skala logarytmiczna. Test ANOVA: F=90.75, p\textless 0.0001}
+\label{fig:learning_rate}
+\end{figure}
+
+% Macierz korelacji
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{analysis_results/correlation_matrix_detailed.png}
+\caption{Macierz korelacji Pearsona dla wszystkich parametrów i metryk modelu}
+\label{fig:correlation}
+\end{figure}
+
+% Confusion Matrix najlepszego modelu
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{analysis_results/best_model_confusion_matrix.png}
+\caption{Znormalizowana macierz pomyłek dla najlepszego modelu (MLP\_LargeBatch, F1=0.8174)}
+\label{fig:confusion_matrix}
+\end{figure}
+
+% Analiza architektury
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{analysis_results/architecture_analysis_detailed.png}
+\caption{Analiza wpływu architektury sieci na wydajność i efektywność. Wykres pokazuje, że głębsze sieci nie poprawiają wyników (p=0.893)}
+\label{fig:architecture}
+\end{figure}
+
+% CYTOWANIE W TEKŚCIE (przykłady):
+%
+% "Przeprowadzono testy ANOVA dla wszystkich parametrów (Tabela~\ref{tab:anova_results}). 
+% Jedynie Learning Rate wykazał statystycznie istotny wpływ na F1-Score 
+% (F=90.75, p<0.0001, $r$=0.695), co przedstawiono szczegółowo na Rysunku~\ref{fig:learning_rate}."
+%
+% "Najlepszy model MLP\_LargeBatch (Tabela~\ref{tab:best_model}) osiągnął F1-Score=0.8174
+% przy prostej architekturze dwuwarstwowej [512, 256]. Macierz pomyłek (Rys.~\ref{fig:confusion_matrix})
+% pokazuje równomierne wyniki dla wszystkich 6 kategorii."
+%
+% "Analiza korelacji (Rys.~\ref{fig:correlation}) potwierdza dominujący wpływ Learning Rate
+% ($r$=0.695), podczas gdy pozostałe parametry wykazują słabe korelacje ($|r|$<0.15)."
