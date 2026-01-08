@@ -211,3 +211,73 @@ button:hover {
 .history ul { list-style: none; padding: 0; }
 .history li { padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-family: 'Courier New', monospace; }
 .back-link { display: inline-block; margin-bottom: 20px; color: var(--primary-color); text-decoration: none; font-weight: 500; }
+
+/* Styles for train again button */
+.train-again-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.button {
+    display: inline-block;
+    background: var(--primary-color);
+    color: var(--background-color) !important;
+    padding: 15px 30px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.button:hover {
+    background: var(--primary-variant-color);
+    box-shadow: 0 0 15px var(--primary-color);
+}
+
+/* Styles for training warning */
+.training-warning {
+    background-color: rgba(255, 229, 102, 0.2);
+    border: 1px solid rgba(255, 229, 102, 0.5);
+    color: #FFE566;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.training-warning p {
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Styles for select dropdown */
+.train-form select.input-field {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: var(--on-surface-color);
+    font-size: 16px;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%23BB86FC%22%3E%3Cpath%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%20/%3E%3C/svg%3E');
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 20px;
+}
+
+.train-form select.input-field:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px var(--primary-color);
+    outline: none;
+}
+

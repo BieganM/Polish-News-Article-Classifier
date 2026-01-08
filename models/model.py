@@ -82,6 +82,26 @@ def set_training_error(error_message: str):
         )
 
 
+def clear_training_status():
+    """Reset status flags so UI can return to the training form (no running/completed state)."""
+    global last_train_result
+    with _status_lock:
+        training_status.update(
+            {
+                "running": False,
+                "completed": False,
+                "message": "idle",
+                "epoch": 0,
+                "epochs": 0,
+                "progress": 0.0,
+                "loss": None,
+                "accuracy": None,
+                "error": None,
+            }
+        )
+        last_train_result = None
+
+
 def set_training_completed():
     with _status_lock:
         if training_status.get("running"):
@@ -119,14 +139,7 @@ class ProgressCallback(TrainerCallback):
                     }
                 )
             if "eval_accuracy" in logs:
-                acc = logs.get("eval_accuracy")
-                if np.isnan(acc):
-                    control.should_training_stop = True
-                    logging.warning(
-                        f"Accuracy is NaN at epoch {state.epoch}, stopping training."
-                    )
-                else:
-                    training_status.update({"accuracy": float(acc)})
+                training_status.update({"accuracy": float(logs.get("eval_accuracy"))})
 
 
 class TextClassifier(nn.Module):
