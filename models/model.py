@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
+from datetime import datetime
 import pandas as pd
 import matplotlib
 
@@ -266,7 +267,9 @@ def _train_transformer(model_type: str, config: TransformerConfig):
         callbacks=callbacks,
     )
 
-    logging.info(f"Starting {model_type.upper()} training on {DEVICE}...")
+    logging.info(
+        f"Starting {model_type.upper()} training on {DEVICE} with {config.epochs} epochs..."
+    )
     trainer.train()
     logging.info(f"{model_type.upper()} training completed.")
 
@@ -280,17 +283,34 @@ def _train_transformer(model_type: str, config: TransformerConfig):
     joblib.dump(label_encoder, model_dir / "label_encoder.joblib")
 
     global last_train_result
+    # Filter out epochs with NaN accuracies so UI shows only valid entries
+    valid_idxs = [i for i, a in enumerate(accuracies) if np.isfinite(a)]
+    filtered_losses = [losses[i] for i in valid_idxs]
+    filtered_accuracies = [accuracies[i] for i in valid_idxs]
     last_train_result = {
-        "losses": losses,
-        "accuracies": accuracies,
-        "plot_loss": _create_plot(losses, "Training Loss", "Loss"),
-        "plot_acc": _create_plot(accuracies, "Validation Accuracy", "Accuracy"),
+        "losses": filtered_losses,
+        "accuracies": filtered_accuracies,
+        "plot_loss": (
+            _create_plot(filtered_losses, "Training Loss", "Loss")
+            if filtered_losses
+            else None
+        ),
+        "plot_acc": (
+            _create_plot(filtered_accuracies, "Validation Accuracy", "Accuracy")
+            if filtered_accuracies
+            else None
+        ),
         "params": asdict(config),
+        "model_type": model_type,
+        "completed_at": datetime.utcnow().isoformat(),
     }
     set_training_completed()
 
 
 def _train_mlp(config: MLPConfig):
+    logging.info(
+        f"Starting MLP training on {DEVICE} with {config.epochs} epochs, early_stopping={config.early_stopping}, patience={config.early_stopping_patience}..."
+    )
     df = pd.read_csv(PATHS.data_path)
     label_encoder = LabelEncoder()
     y = label_encoder.fit_transform(df["category"])
@@ -349,29 +369,34 @@ def _train_mlp(config: MLPConfig):
         losses.append(avg_loss)
 
         model.eval()
-        correct, total = 0, 0
+        all_preds = []
+        all_labels = []
         with torch.no_grad():
             for X_batch, y_batch in test_loader:
                 outputs = model(X_batch.to(DEVICE))
                 _, predicted = torch.max(outputs, 1)
-                total += y_batch.size(0)
-                correct += (predicted.cpu() == y_batch).sum().item()
+                all_preds.extend(predicted.cpu().numpy())
+                all_labels.extend(y_batch.numpy())
 
-        accuracy = correct / total
-        accuracies.append(accuracy)
-        logging.info(
-            f"Epoch {epoch+1}/{config.epochs}, Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}"
-        )
-
-        with _status_lock:
-            training_status.update(
-                {
-                    "epoch": epoch + 1,
-                    "loss": avg_loss,
-                    "accuracy": accuracy,
-                    "progress": ((epoch + 1) / config.epochs) * 100,
-                }
+        accuracy = accuracy_score(all_labels, all_preds)
+        if np.isnan(accuracy):
+            logging.warning(f"Accuracy is NaN at epoch {epoch+1}, stopping training.")
+            break
+        else:
+            accuracies.append(accuracy)
+            logging.info(
+                f"Epoch {epoch+1}/{config.epochs}, Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}"
             )
+
+            with _status_lock:
+                training_status.update(
+                    {
+                        "epoch": epoch + 1,
+                        "loss": avg_loss,
+                        "accuracy": accuracy,
+                        "progress": ((epoch + 1) / config.epochs) * 100,
+                    }
+                )
 
         if config.early_stopping and accuracy > best_acc:
             best_acc, patience_counter = accuracy, 0
@@ -388,12 +413,26 @@ def _train_mlp(config: MLPConfig):
     joblib.dump(asdict(config), PATHS.mlp_dir / "model_config.joblib")
 
     global last_train_result
+    # Filter out epochs with NaN accuracies so UI shows only valid entries
+    valid_idxs = [i for i, a in enumerate(accuracies) if np.isfinite(a)]
+    filtered_losses = [losses[i] for i in valid_idxs]
+    filtered_accuracies = [accuracies[i] for i in valid_idxs]
     last_train_result = {
-        "losses": losses,
-        "accuracies": accuracies,
-        "plot_loss": _create_plot(losses, "Training Loss", "Loss"),
-        "plot_acc": _create_plot(accuracies, "Validation Accuracy", "Accuracy"),
+        "losses": filtered_losses,
+        "accuracies": filtered_accuracies,
+        "plot_loss": (
+            _create_plot(filtered_losses, "Training Loss", "Loss")
+            if filtered_losses
+            else None
+        ),
+        "plot_acc": (
+            _create_plot(filtered_accuracies, "Validation Accuracy", "Accuracy")
+            if filtered_accuracies
+            else None
+        ),
         "params": asdict(config),
+        "model_type": "mlp",
+        "completed_at": datetime.utcnow().isoformat(),
     }
     set_training_completed()
 
